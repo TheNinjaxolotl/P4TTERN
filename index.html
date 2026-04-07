@@ -63,6 +63,15 @@
         }
         .stat-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); font-family: 'Space Mono', monospace; }
         .stat-val { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; }
+        
+        .balance-display {
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+        .balance-val { color: var(--amber); font-weight: 700; font-size: 1.2rem; }
 
         .gem-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; height: 40px; }
         .gem-count { font-family: 'Space Mono', monospace; font-size: 2rem; color: var(--teal); font-weight: 700; }
@@ -132,8 +141,11 @@
 <div id="gameover-overlay">
     <div class="go-card">
         <div class="go-title">FAILED</div>
-        <div id="go-stats" style="font-family: 'Space Mono', monospace; font-size: 1.1rem; margin-bottom: 2rem; color: var(--muted);"></div>
-        <button id="start-btn-main" onclick="closeOverlayAndRestart()">Reboot System</button>
+        <div id="go-stats" style="font-family: 'Space Mono', monospace; font-size: 1.1rem; margin-bottom: 2rem; color: var(--muted); line-height: 1.6;"></div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="play-again-btn" onclick="playAgain()" style="font-family: 'Space Mono', monospace; padding: 12px 24px; border-radius: 14px; border: 1px solid var(--purple); background: rgba(167,139,250,0.08); color: var(--purple); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(167,139,250,0.18)'; this.style.boxShadow='0 0 15px rgba(167,139,250,0.2)'" onmouseout="this.style.background='rgba(167,139,250,0.08)'; this.style.boxShadow='none'">Play Again</button>
+            <button id="start-btn-main" onclick="closeOverlayAndRestart()">Reboot System</button>
+        </div>
     </div>
 </div>
 
@@ -156,6 +168,11 @@
         <div class="gem-count" id="gem-count">0</div>
     </div>
 
+    <div class="balance-display">
+        <span>BALANCE:</span>
+        <div class="balance-val" id="balance-val">0</div>
+    </div>
+
     <div id="status">INITIATE SEQUENCE</div>
 
     <div class="grid">
@@ -170,6 +187,19 @@
 
 <script>
     let seq = [], playerSeq = [], level = 0, best = 0, gems = 0, locked = true;
+    let balance = 0;
+
+    // Load balance from localStorage
+    function loadBalance() {
+        const saved = localStorage.getItem('totalGems');
+        balance = saved ? parseInt(saved) : 0;
+        document.getElementById('balance-val').textContent = balance;
+    }
+
+    // Save balance to localStorage
+    function saveBalance() {
+        localStorage.setItem('totalGems', balance);
+    }
 
     function getTile(i) { return document.getElementById('t' + i); }
     function allTiles() { return [0, 1, 2, 3].map(getTile); }
@@ -198,6 +228,7 @@
     }
 
     function startGame() {
+        loadBalance();
         seq = []; level = 0; gems = 0;
         document.getElementById('gem-count').textContent = '0';
         document.getElementById('start-btn-main').disabled = true;
@@ -240,8 +271,16 @@
         if (level > best) best = level;
         document.getElementById('best-val').textContent = best;
         
+        // Add gems to balance and save
+        balance += gems;
+        saveBalance();
+        document.getElementById('balance-val').textContent = balance;
+        
         setTimeout(() => {
-            document.getElementById('go-stats').innerHTML = `LEVEL REACHED: ${level}<br>GEMS EARNED: ${gems}`;
+            document.getElementById('go-stats').innerHTML = `
+LEVEL REACHED: ${level}<br>
+GEMS EARNED: +${gems}<br>
+<span style="color: var(--amber); font-weight: 700;">TOTAL BALANCE: ${balance}</span>`;
             document.getElementById('gameover-overlay').style.display = 'flex';
         }, 600);
     }
@@ -252,9 +291,22 @@
         startGame();
     }
 
+    function playAgain() {
+        document.getElementById('gameover-overlay').style.display = 'none';
+        allTiles().forEach(t => t.classList.remove('wrong', 'dim', 'lit'));
+        // Start new game without resetting balance
+        seq = []; level = 0; gems = 0;
+        document.getElementById('gem-count').textContent = '0';
+        document.getElementById('start-btn-main').disabled = true;
+        nextRound();
+    }
+
     allTiles().forEach((t, i) => {
         t.addEventListener('pointerdown', () => handleTap(i));
     });
+
+    // Initialize balance on page load
+    loadBalance();
 </script>
 </body>
 </html>
