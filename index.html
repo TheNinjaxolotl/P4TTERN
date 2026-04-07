@@ -65,11 +65,20 @@
         .stat-val { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; }
         
         .balance-display {
-            display: flex; align-items: center; gap: 8px;
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-family: 'Space Mono', monospace;
             font-size: 0.85rem;
             color: var(--muted);
-            margin-bottom: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 8px 16px;
+            z-index: 10;
         }
         .balance-val { color: var(--amber); font-weight: 700; font-size: 1.2rem; }
 
@@ -142,8 +151,16 @@
     <div class="go-card">
         <div class="go-title">FAILED</div>
         <div id="go-stats" style="font-family: 'Space Mono', monospace; font-size: 1.1rem; margin-bottom: 2rem; color: var(--muted); line-height: 1.6;"></div>
-        <button id="start-btn-main" onclick="closeOverlayAndRestart()">Reboot System</button>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="play-again-btn" onclick="playAgain()" style="font-family: 'Space Mono', monospace; padding: 12px 24px; border-radius: 14px; border: 1px solid var(--purple); background: rgba(167,139,250,0.08); color: var(--purple); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: 0.3s;" onmouseover="this.style.background='rgba(167,139,250,0.18)'; this.style.boxShadow='0 0 15px rgba(167,139,250,0.2)'" onmouseout="this.style.background='rgba(167,139,250,0.08)'; this.style.boxShadow='none'">Play Again</button>
+            <button id="start-btn-main" onclick="closeOverlayAndRestart()">Reboot System</button>
+        </div>
     </div>
+</div>
+
+<div class="balance-display">
+    <span>BALANCE:</span>
+    <div class="balance-val" id="balance-val">0</div>
 </div>
 
 <div class="wrapper">
@@ -163,11 +180,6 @@
     <div class="gem-row">
         <span style="color:var(--teal); font-size: 1.5rem;">◆</span>
         <div class="gem-count" id="gem-count">0</div>
-    </div>
-
-    <div class="balance-display">
-        <span>BALANCE:</span>
-        <div class="balance-val" id="balance-val">0</div>
     </div>
 
     <div id="status">INITIATE SEQUENCE</div>
@@ -294,6 +306,17 @@ PREVIOUS BALANCE: ${previousBalance}<br>
         document.getElementById('gameover-overlay').style.display = 'none';
         allTiles().forEach(t => t.classList.remove('wrong', 'dim', 'lit'));
         startGame();
+    }
+
+    function playAgain() {
+        document.getElementById('gameover-overlay').style.display = 'none';
+        allTiles().forEach(t => t.classList.remove('wrong', 'dim', 'lit'));
+        // Start new game without resetting balance
+        previousBalance = balance;
+        seq = []; level = 0; gems = 0;
+        document.getElementById('gem-count').textContent = '0';
+        document.getElementById('start-btn-main').disabled = true;
+        nextRound();
     }
 
     allTiles().forEach((t, i) => {
