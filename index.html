@@ -65,20 +65,11 @@
         .stat-val { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; }
         
         .balance-display {
-            position: fixed;
-            top: 1.5rem;
-            right: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
             font-family: 'Space Mono', monospace;
             font-size: 0.85rem;
             color: var(--muted);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 8px 16px;
-            z-index: 10;
+            margin-bottom: 1rem;
         }
         .balance-val { color: var(--amber); font-weight: 700; font-size: 1.2rem; }
 
@@ -158,11 +149,6 @@
     </div>
 </div>
 
-<div class="balance-display">
-    <span>BALANCE:</span>
-    <div class="balance-val" id="balance-val">0</div>
-</div>
-
 <div class="wrapper">
     <header><div class="logo">Pattern Pulse</div></header>
 
@@ -182,6 +168,11 @@
         <div class="gem-count" id="gem-count">0</div>
     </div>
 
+    <div class="balance-display">
+        <span>BALANCE:</span>
+        <div class="balance-val" id="balance-val">0</div>
+    </div>
+
     <div id="status">INITIATE SEQUENCE</div>
 
     <div class="grid">
@@ -196,7 +187,7 @@
 
 <script>
     let seq = [], playerSeq = [], level = 0, best = 0, gems = 0, locked = true;
-    let balance = 0, gemsPerPattern = 10, previousBalance = 0;
+    let balance = 0;
 
     // Load balance from localStorage
     function loadBalance() {
@@ -208,11 +199,6 @@
     // Save balance to localStorage
     function saveBalance() {
         localStorage.setItem('totalGems', balance);
-    }
-
-    // Calculate gems earned per pattern based on level (increases every 5 patterns)
-    function getGemsPerPattern() {
-        return 10 + Math.floor((level - 1) / 5);
     }
 
     function getTile(i) { return document.getElementById('t' + i); }
@@ -243,7 +229,6 @@
 
     function startGame() {
         loadBalance();
-        previousBalance = balance;
         seq = []; level = 0; gems = 0;
         document.getElementById('gem-count').textContent = '0';
         document.getElementById('start-btn-main').disabled = true;
@@ -270,8 +255,7 @@
             return;
         }
 
-        gemsPerPattern = getGemsPerPattern();
-        gems += gemsPerPattern;
+        gems += 10;
         document.getElementById('gem-count').textContent = gems;
 
         if (playerSeq.length === seq.length) {
@@ -295,9 +279,8 @@
         setTimeout(() => {
             document.getElementById('go-stats').innerHTML = `
 LEVEL REACHED: ${level}<br>
-GEMS EARNED THIS RUN: +${gems}<br>
-PREVIOUS BALANCE: ${previousBalance}<br>
-<span style="color: var(--amber); font-weight: 700;">NEW BALANCE: ${balance}</span>`;
+GEMS EARNED: +${gems}<br>
+<span style="color: var(--amber); font-weight: 700;">TOTAL BALANCE: ${balance}</span>`;
             document.getElementById('gameover-overlay').style.display = 'flex';
         }, 600);
     }
@@ -312,7 +295,6 @@ PREVIOUS BALANCE: ${previousBalance}<br>
         document.getElementById('gameover-overlay').style.display = 'none';
         allTiles().forEach(t => t.classList.remove('wrong', 'dim', 'lit'));
         // Start new game without resetting balance
-        previousBalance = balance;
         seq = []; level = 0; gems = 0;
         document.getElementById('gem-count').textContent = '0';
         document.getElementById('start-btn-main').disabled = true;
