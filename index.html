@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pattern Pulse | Memory Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --teal: #3DFFC0;
+            --purple: #A78BFA;
+            --amber: #FBBF24;
+            --coral: #FF6B6B;
+            --bg: #0A0A0F;
+            --surface: #12121A;
+            --border: rgba(255,255,255,0.07);
+            --text: #F0EEF8;
+            --muted: rgba(240,238,248,0.45);
+        }
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(167,139,250,0.04) 1px, transparent 1px), 
+                              linear-gradient(90deg, rgba(167,139,250,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .wrapper {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 1.5rem;
+        }
+        header { text-align: center; margin-bottom: 2rem; }
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(2.2rem, 8vw, 3.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+        .stats { display: flex; gap: 12px; margin-bottom: 1.5rem; }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 24px;
+            text-align: center;
+            min-width: 90px;
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; color: var(--muted); font-family: 'Space Mono', monospace; }
+        .stat-val { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; }
+
+        .gem-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; height: 40px; }
+        .gem-count { font-family: 'Space Mono', monospace; font-size: 2rem; color: var(--teal); font-weight: 700; }
+
+        #status { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--muted); margin-bottom: 1.5rem; letter-spacing: 0.05em; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: min(350px, 90vw);
+            margin-bottom: 2rem;
+        }
+        .tile {
+            aspect-ratio: 1;
+            border-radius: 22px;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s, opacity 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+        }
+        .tile-0 { background: linear-gradient(145deg, #2EEEA8, #1DB87D); }
+        .tile-1 { background: linear-gradient(145deg, #A78BFA, #7C5CCD); }
+        .tile-2 { background: linear-gradient(145deg, #FBBF24, #D49512); }
+        .tile-3 { background: linear-gradient(145deg, #FF6B6B, #D44040); }
+
+        .tile.dim { opacity: 0.15; filter: saturate(0.2); pointer-events: none; }
+        .tile.lit { opacity: 1 !important; filter: brightness(1.4) saturate(1.2); transform: scale(1.04); }
+        .tile.wrong { animation: shake 0.4s ease forwards; filter: grayscale(1) brightness(0.4); }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        #start-btn-main {
+            font-family: 'Space Mono', monospace;
+            padding: 16px 50px;
+            border-radius: 14px;
+            border: 1px solid var(--teal);
+            background: rgba(61,255,192,0.08);
+            color: var(--teal);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        #start-btn-main:hover { background: rgba(61,255,192,0.18); box-shadow: 0 0 15px rgba(61,255,192,0.2); }
+        #start-btn-main:disabled { opacity: 0; pointer-events: none; }
+
+        #gameover-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(10,10,15,0.96);
+            z-index: 100;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(12px);
+        }
+        .go-card { background: var(--surface); padding: 3rem; border-radius: 28px; border: 1px solid var(--border); text-align: center; max-width: 320px; width: 90%; }
+        .go-title { color: var(--coral); font-family: 'Space Mono', monospace; font-size: 2.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+
+<div id="gameover-overlay">
+    <div class="go-card">
+        <div class="go-title">FAILED</div>
+        <div id="go-stats" style="font-family: 'Space Mono', monospace; font-size: 1.1rem; margin-bottom: 2rem; color: var(--muted);"></div>
+        <button id="start-btn-main" onclick="closeOverlayAndRestart()">Reboot System</button>
+    </div>
+</div>
+
+<div class="wrapper">
+    <header><div class="logo">Pattern Pulse</div></header>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-label">Level</div>
+            <div class="stat-val" id="level-val">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Best</div>
+            <div class="stat-val" id="best-val">0</div>
+        </div>
+    </div>
+
+    <div class="gem-row">
+        <span style="color:var(--teal); font-size: 1.5rem;">◆</span>
+        <div class="gem-count" id="gem-count">0</div>
+    </div>
+
+    <div id="status">INITIATE SEQUENCE</div>
+
+    <div class="grid">
+        <div class="tile tile-0" id="t0"></div>
+        <div class="tile tile-1" id="t1"></div>
+        <div class="tile tile-2" id="t2"></div>
+        <div class="tile tile-3" id="t3"></div>
+    </div>
+
+    <button id="start-btn-main" onclick="startGame()">Start Game</button>
+</div>
+
+<script>
+    let seq = [], playerSeq = [], level = 0, best = 0, gems = 0, locked = true;
+
+    function getTile(i) { return document.getElementById('t' + i); }
+    function allTiles() { return [0, 1, 2, 3].map(getTile); }
+
+    async function flash(idx) {
+        const t = getTile(idx);
+        t.classList.add('lit');
+        await new Promise(r => setTimeout(r, 450));
+        t.classList.remove('lit');
+    }
+
+    async function playSequence() {
+        locked = true;
+        allTiles().forEach(t => t.classList.add('dim'));
+        document.getElementById('status').textContent = 'UPLOADING DATA...';
+        
+        for (const step of seq) {
+            await new Promise(r => setTimeout(r, 250));
+            await flash(step);
+        }
+        
+        document.getElementById('status').textContent = 'REPEAT PATTERN';
+        allTiles().forEach(t => t.classList.remove('dim'));
+        playerSeq = [];
+        locked = false;
+    }
+
+    function startGame() {
+        seq = []; level = 0; gems = 0;
+        document.getElementById('gem-count').textContent = '0';
+        document.getElementById('start-btn-main').disabled = true;
+        nextRound();
+    }
+
+    function nextRound() {
+        level++;
+        document.getElementById('level-val').textContent = level;
+        seq.push(Math.floor(Math.random() * 4));
+        playSequence();
+    }
+
+    function handleTap(idx) {
+        if (locked) return;
+        const t = getTile(idx);
+        t.classList.add('lit');
+        setTimeout(() => t.classList.remove('lit'), 200);
+
+        playerSeq.push(idx);
+        
+        if (playerSeq[playerSeq.length - 1] !== seq[playerSeq.length - 1]) {
+            gameOver();
+            return;
+        }
+
+        gems += 10;
+        document.getElementById('gem-count').textContent = gems;
+
+        if (playerSeq.length === seq.length) {
+            locked = true;
+            document.getElementById('status').textContent = 'SUCCESS';
+            setTimeout(nextRound, 800);
+        }
+    }
+
+    function gameOver() {
+        locked = true;
+        allTiles().forEach(t => t.classList.add('wrong'));
+        if (level > best) best = level;
+        document.getElementById('best-val').textContent = best;
+        
+        setTimeout(() => {
+            document.getElementById('go-stats').innerHTML = `LEVEL REACHED: ${level}<br>GEMS EARNED: ${gems}`;
+            document.getElementById('gameover-overlay').style.display = 'flex';
+        }, 600);
+    }
+
+    function closeOverlayAndRestart() {
+        document.getElementById('gameover-overlay').style.display = 'none';
+        allTiles().forEach(t => t.classList.remove('wrong', 'dim', 'lit'));
+        startGame();
+    }
+
+    allTiles().forEach((t, i) => {
+        t.addEventListener('pointerdown', () => handleTap(i));
+    });
+</script>
+</body>
+</html>
