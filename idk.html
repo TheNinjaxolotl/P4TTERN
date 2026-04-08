@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>P4TTERN | Memory Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --teal: #3DFFC0;
+            --purple: #A78BFA;
+            --amber: #FBBF24;
+            --coral: #FF6B6B;
+            --bg: #080810;
+            --surface: #0f0f1a;
+            --surface2: #16162a;
+            --border: rgba(255,255,255,0.06);
+            --border2: rgba(255,255,255,0.11);
+            --text: #F0EEF8;
+            --muted: rgba(240,238,248,0.38);
+        }
+        html, body {
+            min-height: 100%; background: var(--bg); color: var(--text);
+            font-family: 'DM Sans', sans-serif; overflow-x: hidden; overflow-y: auto;
+            touch-action: manipulation;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(167,139,250,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(167,139,250,0.03) 1px,transparent 1px);
+            background-size: 56px 56px; pointer-events: none; z-index: 0;
+        }
+
+        /* ── LAYOUT ── */
+        .wrapper {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 2rem 1.5rem 3rem; min-height: 100dvh;
+        }
+        .wrapper.playing { padding-top: 1rem; }
+        .wrapper.playing header { display: none; }
+
+        /* ── HEADER ── */
+        header { text-align: center; margin-bottom: 2.5rem; }
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(2.6rem,10vw,4rem); font-weight: 700; letter-spacing: -2px;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--purple) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .tagline { font-size: 0.65rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
+
+        /* ── TOP BAR ── */
+        .top-bar {
+            position: fixed; top: 14px; right: 14px;
+            display: flex; align-items: center; gap: 7px;
+            background: var(--surface); border: 1px solid var(--border2); border-radius: 50px;
+            padding: 8px 16px; font-family: 'Space Mono', monospace; font-size: 0.72rem;
+            color: var(--muted); z-index: 50; letter-spacing: 0.04em;
+        }
+        .top-bar .gem-icon { color: var(--teal); }
+        .top-bar .val { color: var(--amber); font-weight: 700; font-size: 1rem; transition: color 0.2s; }
+        .top-bar .val.adding { color: #fff; }
+
+        /* ── STAT CARDS ── */
+        .stats { display: flex; gap: 10px; margin-bottom: 1.8rem; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+            padding: 12px 28px; text-align: center; min-width: 88px;
+        }
+        .stat-label { font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 3px; }
+        .stat-val { font-family: 'Space Mono', monospace; font-size: 1.9rem; font-weight: 700; line-height: 1; }
+
+        /* ── GAME HUD ── */
+        .game-hud { display: none; flex-direction: column; align-items: center; width: min(340px,88vw); margin-bottom: 1rem; gap: 10px; }
+        .game-hud.visible { display: flex; }
+        .gem-earned-row { display: flex; align-items: center; gap: 9px; }
+        .gem-earned-row .gem-icon { color: var(--teal); font-size: 1rem; }
+        .gem-earned-val { font-family: 'Space Mono', monospace; font-size: 1.65rem; font-weight: 700; color: var(--teal); }
+        .gem-rate-badge {
+            font-family: 'Space Mono', monospace; font-size: 0.58rem; padding: 3px 10px;
+            border-radius: 50px; border: 1px solid rgba(61,255,192,0.22);
+            color: var(--teal); background: rgba(61,255,192,0.05); letter-spacing: 0.06em;
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-wrap { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 50px; padding: 5px 5px 0; }
+        .progress-track { height: 7px; border-radius: 50px; background: var(--surface2); overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 50px; background: linear-gradient(90deg,var(--teal),var(--purple)); transition: width 0.45s cubic-bezier(0.4,0,0.2,1); width: 0%; }
+        .progress-labels { display: flex; justify-content: space-between; padding: 5px 2px 4px; }
+        .prog-lbl { font-family: 'Space Mono', monospace; font-size: 0.52rem; color: var(--muted); letter-spacing: 0.04em; }
+        .prog-lbl.hi { color: var(--teal); }
+
+        #status { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+
+        /* ── TILES ── */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: min(340px,88vw); margin-bottom: 1.8rem; }
+        .tile { aspect-ratio: 1; border-radius: 26px; cursor: pointer; transition: transform 0.1s ease, filter 0.18s ease, opacity 0.18s ease; border: 1px solid rgba(255,255,255,0.07); }
+        .tile-0 { background: linear-gradient(145deg,#2EEEA8,#19A870); }
+        .tile-1 { background: linear-gradient(145deg,#A78BFA,#7354C8); }
+        .tile-2 { background: linear-gradient(145deg,#FBBF24,#C98E0E); }
+        .tile-3 { background: linear-gradient(145deg,#FF6B6B,#C83535); }
+        .tile.dim { opacity: 0.11; filter: saturate(0.12); pointer-events: none; }
+        .tile.lit { opacity: 1 !important; filter: brightness(1.5) saturate(1.3); transform: scale(1.055); }
+        .tile.wrong { animation: shake 0.38s ease forwards; filter: grayscale(1) brightness(0.3); }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)} }
+
+        /* ── HOME BUTTONS ── */
+        .home-buttons { display: flex; flex-direction: column; align-items: center; gap: 11px; }
+        .home-buttons.hidden { display: none; }
+        .btn {
+            font-family: 'Space Mono', monospace; font-size: 0.72rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.12em; padding: 14px 0; width: 196px;
+            border-radius: 14px; cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+        }
+        .btn-teal { border: 1px solid rgba(61,255,192,0.4); background: rgba(61,255,192,0.06); color: var(--teal); }
+        .btn-teal:hover { background: rgba(61,255,192,0.13); box-shadow: 0 0 20px rgba(61,255,192,0.12); }
+        .btn-purple { border: 1px solid rgba(167,139,250,0.32); background: rgba(167,139,250,0.06); color: var(--purple); }
+        .btn-purple:hover { background: rgba(167,139,250,0.13); box-shadow: 0 0 20px rgba(167,139,250,0.12); }
+        .btn-amber { border: 1px solid rgba(251,191,36,0.45); background: rgba(251,191,36,0.08); color: var(--amber); }
+        .btn-amber:hover { background: rgba(251,191,36,0.16); box-shadow: 0 0 20px rgba(251,191,36,0.14); }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none !important; }
+
+        /* ── OVERLAYS ── */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(8,8,16,0.93); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(18px); }
+        .overlay-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 28px; padding: 2.4rem 2rem; width: min(330px,92vw); text-align: center; }
+
+        /* ── REVIVAL OVERLAY ── */
+        #revival-overlay .overlay-card { border-color: rgba(251,191,36,0.3); }
+        .revival-icon { font-size: 2.8rem; margin-bottom: 0.6rem; }
+        .revival-title { font-family: 'Space Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--amber); margin-bottom: 0.3rem; }
+        .revival-sub { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); line-height: 1.8; margin-bottom: 0.5rem; }
+        .revival-cost { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--amber); margin-bottom: 1.6rem; }
+        .revival-cost span { opacity: 0.6; }
+        .revival-actions { display: flex; gap: 10px; justify-content: center; }
+        /* countdown ring */
+        .revival-timer { position: relative; width: 48px; height: 48px; margin: 0 auto 1rem; }
+        .revival-timer svg { transform: rotate(-90deg); }
+        .revival-timer circle { fill: none; stroke-width: 3; }
+        .revival-timer .bg { stroke: var(--surface2); }
+        .revival-timer .fg { stroke: var(--amber); stroke-dasharray: 126; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; }
+        .revival-timer .num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--amber); }
+
+        /* ── GAME OVER ── */
+        .go-title { font-family: 'Space Mono', monospace; font-size: 1.9rem; font-weight: 700; color: var(--coral); margin-bottom: 0.4rem; }
+
+        /* Tally animation area */
+        #tally-area {
+            font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--muted);
+            line-height: 2; margin-bottom: 1.6rem; min-height: 80px;
+        }
+        .tally-row { opacity: 0; transform: translateY(6px); transition: opacity 0.35s ease, transform 0.35s ease; }
+        .tally-row.show { opacity: 1; transform: translateY(0); }
+        .tally-highlight { color: var(--amber); font-weight: 700; }
+        .tally-counter-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tally-counter { color: var(--teal); font-weight: 700; font-size: 1rem; min-width: 60px; }
+        .tally-arrow { color: var(--muted); font-size: 0.7rem; }
+
+        .go-actions { display: flex; gap: 10px; justify-content: center; }
+
+        /* ── SHOP ── */
+        .shop-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+        .shop-title { font-family: 'Space Mono', monospace; font-size: 1.35rem; font-weight: 700; background: linear-gradient(135deg,var(--amber),var(--coral)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .icon-btn { background: none; border: 1px solid var(--border2); border-radius: 10px; color: var(--muted); font-size: 0.85rem; padding: 5px 12px; cursor: pointer; font-family: 'Space Mono', monospace; transition: 0.2s; }
+        .icon-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.22); }
+        .shop-bal { font-family: 'Space Mono', monospace; font-size: 0.67rem; color: var(--muted); margin-bottom: 1.3rem; letter-spacing: 0.06em; }
+        .shop-bal span { color: var(--amber); font-size: 0.9rem; font-weight: 700; }
+        .shop-tabs { display: flex; gap: 7px; margin-bottom: 1.3rem; }
+        .shop-tab { flex: 1; font-family: 'Space Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.09em; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: 0.2s; }
+        .shop-tab:hover { color: var(--text); border-color: var(--border2); }
+        .shop-tab.active { border-color: rgba(251,191,36,0.45); color: var(--amber); background: rgba(251,191,36,0.05); }
+        .shop-section-lbl { font-family: 'Space Mono', monospace; font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); text-align: left; margin-bottom: 9px; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 1.3rem; }
+
+        /* Real shop item */
+        .shop-item-real {
+            background: rgba(251,191,36,0.04); border: 1px solid rgba(251,191,36,0.18);
+            border-radius: 14px; padding: 1.1rem 0.7rem;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 5px; min-height: 96px; justify-content: center; cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            grid-column: span 2;
+        }
+        .shop-item-real:hover { background: rgba(251,191,36,0.09); border-color: rgba(251,191,36,0.35); }
+        .shop-item-real.owned { border-color: rgba(61,255,192,0.3); background: rgba(61,255,192,0.04); cursor: default; }
+        .shop-item-real.owned:hover { background: rgba(61,255,192,0.04); border-color: rgba(61,255,192,0.3); }
+        .shop-item-real-icon { font-size: 1.6rem; margin-bottom: 2px; }
+        .shop-item-real-name { font-family: 'Space Mono', monospace; font-size: 0.68rem; color: var(--text); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+        .shop-item-real-desc { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: var(--muted); line-height: 1.6; text-align: center; }
+        .shop-item-real-price { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--amber); margin-top: 2px; }
+        .shop-item-real-price.owned-lbl { color: var(--teal); }
+        .shop-item-real-qty { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--teal); background: rgba(61,255,192,0.08); border: 1px solid rgba(61,255,192,0.2); border-radius: 50px; padding: 2px 10px; margin-top: 2px; }
+
+        /* Placeholder item */
+        .shop-item { background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.07); border-radius: 14px; padding: 1.3rem 0.7rem; display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: 96px; justify-content: center; }
+        .shop-item-icon { font-size: 1.2rem; opacity: 0.16; }
+        .shop-item-label { font-family: 'Space Mono', monospace; font-size: 0.55rem; color: rgba(240,238,248,0.16); text-transform: uppercase; letter-spacing: 0.07em; }
+        .shop-note { font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--muted); line-height: 1.8; }
+
+        /* Floating gem particle */
+        .gem-particle {
+            position: fixed; pointer-events: none; z-index: 200;
+            font-family: 'Space Mono', monospace; font-weight: 700;
+            color: var(--teal); font-size: 0.85rem;
+            animation: gem-fly 1.1s ease-out forwards;
+        }
+        @keyframes gem-fly {
+            0%   { opacity: 1; transform: translateY(0) scale(1); }
+            60%  { opacity: 1; transform: translateY(-40px) scale(1.15); }
+            100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+        }
+
+        @media (max-width: 400px) { .wrapper { padding: 1.4rem 1rem 2rem; } .grid { width: min(295px,94vw); gap: 10px; } }
+        @media (max-height: 620px) { .wrapper { padding-top: 0.8rem; } header { margin-bottom: 1.2rem; } .stats { margin-bottom: 1rem; } }
+    </style>
+</head>
+<body>
+
+<!-- Balance pill -->
+<div class="top-bar">
+    <span class="gem-icon">◆</span>
+    <div class="val" id="balance-val">0</div>
+</div>
+
+<!-- Revival prompt (shows immediately after death, before game over) -->
+<div class="overlay" id="revival-overlay">
+    <div class="overlay-card">
+        <div class="revival-icon">💎</div>
+        <div class="revival-title">CONTINUE?</div>
+        <div class="revival-sub">Use a Revival Token to keep<br>your current gems &amp; level.</div>
+        <div class="revival-cost"><span>Cost: </span>1 Revival Token</div>
+        <div class="revival-timer">
+            <svg viewBox="0 0 44 44" width="48" height="48">
+                <circle class="bg" cx="22" cy="22" r="20"/>
+                <circle class="fg" id="revival-ring" cx="22" cy="22" r="20"/>
+            </svg>
+            <div class="num" id="revival-countdown">5</div>
+        </div>
+        <div class="revival-actions">
+            <button class="btn btn-purple" onclick="declineRevival()">Decline</button>
+            <button class="btn btn-amber" id="revival-use-btn" onclick="useRevival()">Use Token</button>
+        </div>
+    </div>
+</div>
+
+<!-- Game Over -->
+<div class="overlay" id="gameover-overlay">
+    <div class="overlay-card">
+        <div class="go-title">FAILED</div>
+        <div id="tally-area">
+            <div class="tally-row" id="tally-level"></div>
+            <div class="tally-row" id="tally-earned"></div>
+            <div class="tally-row" id="tally-counter-row">
+                <div class="tally-counter-wrap">
+                    <span id="tally-from" class="tally-counter">—</span>
+                    <span class="tally-arrow">▶</span>
+                    <span id="tally-to" class="tally-counter">—</span>
+                </div>
+            </div>
+            <div class="tally-row" id="tally-total"></div>
+        </div>
+        <div class="go-actions">
+            <button class="btn btn-purple" onclick="goHome()">Home</button>
+            <button class="btn btn-teal" onclick="playAgain()">Play Again</button>
+        </div>
+    </div>
+</div>
+
+<!-- Shop -->
+<div class="overlay" id="shop-overlay">
+    <div class="overlay-card">
+        <div class="shop-header">
+            <div class="shop-title">◆ SHOP</div>
+            <button class="icon-btn" onclick="closeShop()">✕</button>
+        </div>
+        <div class="shop-bal">BALANCE: <span id="shop-balance-val">0</span> gems</div>
+        <div class="shop-tabs">
+            <button class="shop-tab active" id="tab-1" onclick="switchShopPage(1)">Page 1</button>
+            <button class="shop-tab" id="tab-2" onclick="switchShopPage(2)">Page 2</button>
+        </div>
+
+        <div id="shop-page-1">
+            <div class="shop-section-lbl">Items</div>
+            <div class="shop-grid">
+                <!-- Revival Token -->
+                <div class="shop-item-real" id="revival-shop-item" onclick="buyRevival()">
+                    <div class="shop-item-real-icon">💎</div>
+                    <div class="shop-item-real-name">Revival Token</div>
+                    <div class="shop-item-real-desc">Continue a run after dying.<br>Keeps your gems &amp; level.</div>
+                    <div class="shop-item-real-price" id="revival-price-lbl">◆ 150 gems</div>
+                    <div class="shop-item-real-qty" id="revival-qty-lbl" style="display:none;">Owned: 0</div>
+                </div>
+                <!-- Placeholders -->
+                <div class="shop-item"><div class="shop-item-icon">?</div><div class="shop-item-label">Coming Soon</div></div>
+                <div class="shop-item"><div class="shop-item-icon">?</div><div class="shop-item-label">Coming Soon</div></div>
+            </div>
+            <div class="shop-note">More items on the way. Keep playing!</div>
+        </div>
+
+        <div id="shop-page-2" style="display:none;">
+            <div class="shop-section-lbl">More Items</div>
+            <div class="shop-grid">
+                <div class="shop-item"><div class="shop-item-icon">?</div><div class="shop-item-label">Coming Soon</div></div>
+                <div class="shop-item"><div class="shop-item-icon">?</div><div class="shop-item-label">Coming Soon</div></div>
+                <div class="shop-item"><div class="shop-item-icon">?</div><div class="shop-item-label">Coming Soon</div></div>
+                <div class="shop-item"><div class="shop-item-icon">?</div><div class="shop-item-label">Coming Soon</div></div>
+            </div>
+            <div class="shop-note">Even more coming soon.<br>Stay tuned!</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="wrapper" id="main-wrapper">
+    <header>
+        <div class="logo">P4TTERN</div>
+        <div class="tagline">Memory Challenge</div>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card"><div class="stat-label">Level</div><div class="stat-val" id="level-val">0</div></div>
+        <div class="stat-card"><div class="stat-label">Best</div><div class="stat-val" id="best-val">0</div></div>
+    </div>
+
+    <div class="game-hud" id="game-hud">
+        <div class="gem-earned-row">
+            <span class="gem-icon">◆</span>
+            <div class="gem-earned-val" id="gem-count">0</div>
+            <div class="gem-rate-badge" id="gem-rate-badge">+10 / tap</div>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="progress-labels">
+                <div class="prog-lbl hi" id="prog-left">10 gems/tap</div>
+                <div class="prog-lbl" id="prog-mid"></div>
+                <div class="prog-lbl" id="prog-right">next: 15</div>
+            </div>
+        </div>
+        <div id="status">WATCH...</div>
+    </div>
+
+    <div class="grid" id="tile-grid">
+        <div class="tile tile-0" id="t0"></div>
+        <div class="tile tile-1" id="t1"></div>
+        <div class="tile tile-2" id="t2"></div>
+        <div class="tile tile-3" id="t3"></div>
+    </div>
+
+    <div class="home-buttons" id="home-buttons">
+        <button class="btn btn-teal" onclick="startGame()">Start Game</button>
+        <button class="btn btn-purple" onclick="openShop()">Shop</button>
+    </div>
+</div>
+
+<script>
+    // ── STATE ──
+    let seq=[], playerSeq=[], level=0, best=0, gems=0, locked=true, balance=0;
+    let revivalTokens=0;
+    let revivalTimer=null, revivalSecondsLeft=5;
+    const REVIVAL_COST = 150;
+    const REVIVAL_KEY = 'p4ttern_revivals';
+    const GEMS_KEY = 'p4ttern_gems';
+
+    // ── GEM RATE ──
+    function getRate(lvl) { return 10 + Math.floor(lvl/5)*5; }
+    function updateHUD(lvl) {
+        const rate=getRate(lvl), next=rate+5, pos=lvl%5;
+        document.getElementById('progress-fill').style.width=(pos/5*100)+'%';
+        document.getElementById('gem-rate-badge').textContent='+'+rate+' / tap';
+        document.getElementById('prog-left').textContent=rate+' gems/tap';
+        document.getElementById('prog-mid').textContent=pos>0?(5-pos)+' lvl'+(5-pos!==1?'s':''):'';
+        document.getElementById('prog-right').textContent='next: '+next;
+    }
+
+    // ── PERSISTENCE ──
+    function loadAll() {
+        const s=localStorage.getItem(GEMS_KEY); balance=s?parseInt(s):0;
+        const r=localStorage.getItem(REVIVAL_KEY); revivalTokens=r?parseInt(r):0;
+        document.getElementById('balance-val').textContent=balance;
+        document.getElementById('shop-balance-val').textContent=balance;
+        refreshRevivalShopUI();
+    }
+    function saveAll() {
+        localStorage.setItem(GEMS_KEY,balance);
+        localStorage.setItem(REVIVAL_KEY,revivalTokens);
+    }
+
+    // ── REVIVAL SHOP UI ──
+    function refreshRevivalShopUI() {
+        const item=document.getElementById('revival-shop-item');
+        const priceLbl=document.getElementById('revival-price-lbl');
+        const qtyLbl=document.getElementById('revival-qty-lbl');
+        if(revivalTokens>0){
+            item.classList.add('owned');
+            priceLbl.className='shop-item-real-price owned-lbl';
+            priceLbl.textContent='✓ Purchased';
+            qtyLbl.style.display='block';
+            qtyLbl.textContent='Owned: '+revivalTokens;
+        } else {
+            item.classList.remove('owned');
+            priceLbl.className='shop-item-real-price';
+            priceLbl.textContent='◆ '+REVIVAL_COST+' gems';
+            qtyLbl.style.display='none';
+        }
+        document.getElementById('shop-balance-val').textContent=balance;
+    }
+
+    function buyRevival() {
+        if(balance<REVIVAL_COST){ shakeEl('revival-shop-item'); return; }
+        balance-=REVIVAL_COST;
+        revivalTokens++;
+        saveAll();
+        refreshRevivalShopUI();
+        spawnParticle(document.getElementById('revival-shop-item'),'-'+REVIVAL_COST,'var(--coral)');
+    }
+    function shakeEl(id){
+        const el=document.getElementById(id);
+        el.style.animation='shake 0.38s ease';
+        setTimeout(()=>el.style.animation='',400);
+    }
+
+    // ── TILES ──
+    function getTile(i){return document.getElementById('t'+i);}
+    function allTiles(){return[0,1,2,3].map(getTile);}
+    async function flash(idx){
+        const t=getTile(idx); t.classList.add('lit');
+        await new Promise(r=>setTimeout(r,440)); t.classList.remove('lit');
+    }
+    async function playSequence(){
+        locked=true; allTiles().forEach(t=>t.classList.add('dim'));
+        document.getElementById('status').textContent='WATCH...';
+        for(const s of seq){await new Promise(r=>setTimeout(r,240)); await flash(s);}
+        document.getElementById('status').textContent='YOUR TURN';
+        allTiles().forEach(t=>t.classList.remove('dim')); playerSeq=[]; locked=false;
+    }
+
+    // ── GAME FLOW ──
+    function startGame(){
+        loadAll(); seq=[]; level=0; gems=0;
+        document.getElementById('gem-count').textContent='0';
+        document.getElementById('game-hud').classList.add('visible');
+        document.getElementById('home-buttons').classList.add('hidden');
+        document.getElementById('main-wrapper').classList.add('playing');
+        updateHUD(0); nextRound();
+    }
+    function nextRound(){
+        level++;
+        document.getElementById('level-val').textContent=level;
+        updateHUD(level); seq.push(Math.floor(Math.random()*4)); playSequence();
+    }
+    function handleTap(idx){
+        if(locked) return;
+        const t=getTile(idx); t.classList.add('lit');
+        setTimeout(()=>t.classList.remove('lit'),200);
+        playerSeq.push(idx);
+        if(playerSeq[playerSeq.length-1]!==seq[playerSeq.length-1]){gameOver();return;}
+        gems+=getRate(level);
+        document.getElementById('gem-count').textContent=gems;
+        spawnTapParticle(idx,'+'+getRate(level));
+        if(playerSeq.length===seq.length){
+            locked=true; document.getElementById('status').textContent='NICE!';
+            setTimeout(nextRound,750);
+        }
+    }
+
+    function gameOver(){
+        locked=true; allTiles().forEach(t=>t.classList.add('wrong'));
+        if(level>best){best=level; document.getElementById('best-val').textContent=best;}
+        // Check if player has revival tokens
+        setTimeout(()=>{
+            if(revivalTokens>0){ showRevivalPrompt(); }
+            else { triggerGameOverScreen(); }
+        },500);
+    }
+
+    // ── REVIVAL ──
+    function showRevivalPrompt(){
+        revivalSecondsLeft=5;
+        document.getElementById('revival-countdown').textContent=5;
+        document.getElementById('revival-ring').style.strokeDashoffset=0;
+        const useBtn=document.getElementById('revival-use-btn');
+        useBtn.disabled=false;
+        useBtn.textContent='Use Token ('+revivalTokens+')';
+        document.getElementById('revival-overlay').style.display='flex';
+        // Countdown
+        revivalTimer=setInterval(()=>{
+            revivalSecondsLeft--;
+            const pct=revivalSecondsLeft/5;
+            document.getElementById('revival-ring').style.strokeDashoffset=(1-pct)*126;
+            document.getElementById('revival-countdown').textContent=revivalSecondsLeft;
+            if(revivalSecondsLeft<=0){ clearInterval(revivalTimer); declineRevival(); }
+        },1000);
+    }
+    function useRevival(){
+        clearInterval(revivalTimer);
+        revivalTokens--;
+        saveAll();
+        document.getElementById('revival-overlay').style.display='none';
+        allTiles().forEach(t=>t.classList.remove('wrong','dim','lit'));
+        // Continue from same level — replay the sequence
+        document.getElementById('status').textContent='REVIVED!';
+        refreshRevivalShopUI();
+        setTimeout(()=>playSequence(),900);
+        locked=false;
+    }
+    function declineRevival(){
+        clearInterval(revivalTimer);
+        document.getElementById('revival-overlay').style.display='none';
+        triggerGameOverScreen();
+    }
+
+    // ── TALLY ANIMATION ──
+    function triggerGameOverScreen(){
+        const prevBalance=balance; // balance before this run
+        // Show overlay first, then animate rows in
+        document.getElementById('gameover-overlay').style.display='flex';
+        // Reset tally rows
+        ['tally-level','tally-earned','tally-counter-row','tally-total'].forEach(id=>{
+            document.getElementById(id).classList.remove('show');
+        });
+        document.getElementById('tally-from').textContent=prevBalance;
+        document.getElementById('tally-to').textContent=prevBalance;
+        document.getElementById('tally-total').innerHTML='';
+
+        // Animate rows
+        setTimeout(()=>{
+            const lvlRow=document.getElementById('tally-level');
+            lvlRow.innerHTML='LEVEL: <strong>'+level+'</strong>';
+            lvlRow.classList.add('show');
+        },200);
+        setTimeout(()=>{
+            const earnedRow=document.getElementById('tally-earned');
+            earnedRow.innerHTML='GEMS EARNED: <span style="color:var(--teal);font-weight:700;">+'+gems+'</span>';
+            earnedRow.classList.add('show');
+        },550);
+        // Animate counter rolling up
+        setTimeout(()=>{
+            document.getElementById('tally-counter-row').classList.add('show');
+            animateCounter(prevBalance, prevBalance+gems, 900, (val)=>{
+                document.getElementById('tally-to').textContent=val;
+                document.getElementById('balance-val').textContent=val;
+            }, ()=>{
+                // After counter finishes, add to actual balance
+                balance=prevBalance+gems;
+                saveAll();
+                document.getElementById('balance-val').textContent=balance;
+                // Flash the balance pill
+                const pill=document.getElementById('balance-val');
+                pill.classList.add('adding');
+                setTimeout(()=>pill.classList.remove('adding'),600);
+                // Show total row
+                setTimeout(()=>{
+                    const total=document.getElementById('tally-total');
+                    total.innerHTML='<span class="tally-highlight">TOTAL: '+balance+'</span>';
+                    total.classList.add('show');
+                },200);
+            });
+        },900);
+    }
+
+    function animateCounter(from, to, duration, onUpdate, onDone){
+        const start=performance.now();
+        function step(now){
+            const p=Math.min((now-start)/duration,1);
+            const eased=1-Math.pow(1-p,3); // ease-out cubic
+            const val=Math.round(from+eased*(to-from));
+            onUpdate(val);
+            if(p<1){ requestAnimationFrame(step); } else { onDone && onDone(); }
+        }
+        requestAnimationFrame(step);
+    }
+
+    // ── PARTICLE FX ──
+    function spawnParticle(anchorEl, text, color){
+        const rect=anchorEl.getBoundingClientRect();
+        const el=document.createElement('div');
+        el.className='gem-particle';
+        el.textContent=text;
+        el.style.color=color||'var(--teal)';
+        el.style.left=(rect.left+rect.width/2-16)+'px';
+        el.style.top=(rect.top+rect.height/2-10)+'px';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(),1200);
+    }
+    function spawnTapParticle(tileIdx, text){
+        const el=document.getElementById('t'+tileIdx);
+        if(el) spawnParticle(el, text, 'var(--teal)');
+    }
+
+    // ── HOME / RESTART ──
+    function goHome(){
+        document.getElementById('gameover-overlay').style.display='none';
+        allTiles().forEach(t=>t.classList.remove('wrong','dim','lit'));
+        seq=[]; playerSeq=[]; level=0; gems=0;
+        document.getElementById('gem-count').textContent='0';
+        document.getElementById('level-val').textContent='0';
+        document.getElementById('status').textContent='WATCH...';
+        document.getElementById('game-hud').classList.remove('visible');
+        document.getElementById('home-buttons').classList.remove('hidden');
+        document.getElementById('main-wrapper').classList.remove('playing');
+        updateHUD(0);
+    }
+    function playAgain(){
+        document.getElementById('gameover-overlay').style.display='none';
+        allTiles().forEach(t=>t.classList.remove('wrong','dim','lit'));
+        seq=[]; level=0; gems=0;
+        document.getElementById('gem-count').textContent='0';
+        updateHUD(0); nextRound();	
+    }
+
+    // ── SHOP ──
+    function switchShopPage(p){
+        document.getElementById('shop-page-1').style.display=p===1?'block':'none';
+        document.getElementById('shop-page-2').style.display=p===2?'block':'none';
+        document.getElementById('tab-1').classList.toggle('active',p===1);
+        document.getElementById('tab-2').classList.toggle('active',p===2);
+    }
+    function openShop(){
+        loadAll(); switchShopPage(1);
+        document.getElementById('shop-overlay').style.display='flex';
+    }
+    function closeShop(){ document.getElementById('shop-overlay').style.display='none'; }
+
+    allTiles().forEach((t,i)=>t.addEventListener('pointerdown',()=>handleTap(i)));
+    loadAll();
+</script>
+</body>
+</html>
