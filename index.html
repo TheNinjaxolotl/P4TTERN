@@ -271,7 +271,9 @@
         loadBalance();
         seq = []; level = 0; gems = 0;
         document.getElementById('gem-count').textContent = '0';
-        document.getElementById('start-btn-main').disabled = true;
+        const startButton = document.getElementById('start-btn-main');
+        startButton.style.display = 'none';
+        startButton.disabled = true;
         nextRound();
     }
 
