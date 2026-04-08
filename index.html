@@ -45,6 +45,13 @@
             align-items: center;
             padding: 1.5rem;
             box-sizing: border-box;
+            transition: padding 0.25s ease;
+        }
+        .wrapper.playing {
+            padding-top: 0.75rem;
+        }
+        .wrapper.playing header {
+            display: none;
         }
         header { text-align: center; margin-bottom: 2rem; }
         .logo {
@@ -285,6 +292,7 @@
         loadBalance();
         seq = []; level = 0; gems = 0;
         document.getElementById('gem-count').textContent = '0';
+        document.querySelector('.wrapper').classList.add('playing');
         const startButton = document.getElementById('start-btn-main');
         startButton.style.display = 'none';
         startButton.disabled = true;
@@ -357,6 +365,7 @@ GEMS EARNED: +${gems}<br>
         document.getElementById('gem-count').textContent = '0';
         document.getElementById('level-val').textContent = '0';
         document.getElementById('status').textContent = 'INITIATE SEQUENCE';
+        document.querySelector('.wrapper').classList.remove('playing');
         const startButton = document.getElementById('start-btn-main');
         startButton.style.display = 'inline-flex';
         startButton.disabled = false;
