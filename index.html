@@ -69,11 +69,20 @@
         .stat-val { font-family: 'Space Mono', monospace; font-size: 1.8rem; font-weight: 700; }
         
         .balance-display {
-            display: flex; align-items: center; gap: 8px;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-family: 'Space Mono', monospace;
             font-size: 0.85rem;
             color: var(--muted);
-            margin-bottom: 1rem;
+            background: rgba(18, 18, 28, 0.96);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 10px 14px;
+            z-index: 20;
         }
         .balance-val { color: var(--amber); font-weight: 700; font-size: 1.2rem; }
 
